@@ -7,7 +7,7 @@
 **Falsifiable success criterion:** after the platform and reference app (KYC review queue) exist, Devin builds a second tool (feature-flag admin panel) from a one-page spec using the `create-internal-tool` Skill, such that:
 
 - all tests and lint pass,
-- zero changes to `src/platform/` are required,
+- zero changes to `platform/` are required (if the spec needs a platform capability that doesn't exist, that's handled by the extension workflow below, in a separate PR — not by the app build),
 - every mutation goes through the governed action pipeline (enforced by an import-boundary check, not convention),
 - the UI is visibly the same family as the reference app,
 - human intervention is limited to writing the spec and reviewing the PR.
@@ -18,6 +18,9 @@ This is a proof of concept: clear boundaries and working behavior are prioritize
 
 ```
 README.md
+pyproject.toml                 # single Python toolchain; packages: platform/backend, apps/*/backend
+package.json                   # single JS toolchain; Vite + Tailwind + shadcn/ui, aliases into
+vite.config.ts                 #   platform/frontend and apps/*/frontend
 docs/
 ├── architecture.md            # this document
 ├── tool-spec.template.md      # one-page spec an engineer fills in per tool
@@ -28,38 +31,33 @@ docs/
 └── skills/
     └── create-internal-tool/
         └── SKILL.md           # Devin Skill: spec → working tool
-backend/
-├── pyproject.toml
-└── src/
-    ├── platform/
-    │   ├── auth/              # identity provider interface + mocked provider, roles
-    │   ├── actions/           # governed action pipeline
-    │   ├── audit/             # append-only audit log (table + query API)
-    │   ├── connectors/        # typed connector contract + fake connector base
-    │   ├── db/                # SQLite engine, session, migration helper
-    │   └── testing/           # pytest fixtures: users-by-role, fake connectors, audit assertions
-    └── apps/
-        └── kyc/
-            ├── models.py      # domain model + states
-            ├── policies.py    # role → action permissions, state-transition table
-            ├── connector.py   # KYC system-of-record connector (fake impl for POC)
-            ├── actions.py     # governed actions (approve, reject, escalate, ...)
-            ├── router.py      # FastAPI router: thin HTTP layer over actions/queries
-            └── tests/
-frontend/
-├── package.json               # React + Vite + Tailwind + shadcn/ui
-└── src/
-    ├── platform/
-    │   ├── components/        # shadcn-based kit: QueuePage, DetailPage, ActionBar,
-    │   │                      #   StatusBadge, AuditTrail, RoleSwitcher
-    │   ├── api/               # typed client: fetch wrapper, action invocation, error shape
-    │   └── theme/             # tokens; single source of visual identity
-    └── apps/
-        └── kyc/
-            └── pages/         # composes platform components only
+platform/
+├── backend/
+│   ├── auth/                  # identity provider interface + mocked provider, roles
+│   ├── actions/               # governed action pipeline
+│   ├── audit/                 # append-only audit log (table + query API)
+│   ├── connectors/            # typed connector contract + fake connector base
+│   ├── db/                    # SQLite engine, session, migration helper
+│   └── testing/               # pytest fixtures: users-by-role, fake connectors, audit assertions
+└── frontend/
+    ├── components/            # shadcn-based kit: QueuePage, DetailPage, ActionBar,
+    │                          #   StatusBadge, AuditTrail, RoleSwitcher
+    ├── api/                   # typed client: fetch wrapper, action invocation, error shape
+    └── theme/                 # tokens; single source of visual identity
+apps/
+└── kyc/
+    ├── backend/
+    │   ├── models.py          # domain model + states
+    │   ├── policies.py        # role → action permissions, state-transition table
+    │   ├── connector.py       # KYC system-of-record connector (fake impl for POC)
+    │   ├── actions.py         # governed actions (approve, reject, escalate, ...)
+    │   ├── router.py          # FastAPI router: thin HTTP layer over actions/queries
+    │   └── tests/
+    └── frontend/
+        └── pages/             # composes platform components only
 ```
 
-Notes vs. the sketch this evolved from: backend/frontend are split at the top level (different toolchains); `pages` moves to `frontend/src/apps/<tool>/`; `db/` is added to the platform because persistence and migrations are where apps otherwise quietly diverge.
+Domain-first layout: `platform/` and each `apps/<tool>/` contain their own `backend/` + `frontend/`, so a new tool is exactly one new folder (which is what the Skill scaffolds). The tradeoff is that toolchain configs live once at the repo root (one `pyproject.toml`, one Vite app) and reach into these folders via package/alias configuration. `db/` is part of the platform because persistence and migrations are where apps otherwise quietly diverge.
 
 ## Capability 1 — Governed access and actions
 
@@ -118,12 +116,13 @@ Explicit non-goals: no connector marketplace, no generic retry framework (a sing
 ## Capability 3 — Repeatable delivery mechanism
 
 - **`docs/tool-spec.template.md`** — one page: tool name, resource model + states, state-transition table, roles → actions matrix, connector data shape, queue columns/filters, detail-page fields. This is the entire human input for a new tool.
-- **`.agents/skills/create-internal-tool/SKILL.md`** — the Devin Skill: reads a filled spec, then walks a fixed checklist: scaffold `backend/src/apps/<tool>/` and `frontend/src/apps/<tool>/` mirroring `kyc/`, define models/policies/actions, implement the connector as a `FakeConnector`, compose pages exclusively from `platform/components`, write tests using `platform/testing` fixtures, run lint + boundary checks + tests. The Skill dictates the layout patterns (QueuePage → DetailPage → ActionBar), which is what makes every generated tool the same visual family without inventing a UI kit.
+- **`.agents/skills/create-internal-tool/SKILL.md`** — the Devin Skill: reads a filled spec, then walks a fixed checklist: scaffold `apps/<tool>/backend/` and `apps/<tool>/frontend/` mirroring `apps/kyc/`, define models/policies/actions, implement the connector as a `FakeConnector`, compose pages exclusively from `platform/components`, write tests using `platform/testing` fixtures, run lint + boundary checks + tests. The Skill dictates the layout patterns (QueuePage → DetailPage → ActionBar), which is what makes every generated tool the same visual family without inventing a UI kit.
+- **Platform extension workflow** — when a spec needs a capability or UI component the platform doesn't have, the Skill instructs Devin to **stop and escalate rather than improvise**: (1) never fork/inline a bespoke variant inside the app; (2) propose the missing capability as a separate platform PR (generalized, not tool-specific: added to `platform/`, themed, tested, documented in the Skill's component inventory), reviewed by a platform owner; (3) the app PR then builds on it. This keeps the "zero platform changes in an app PR" invariant while giving the platform a governed way to grow — mirroring how a real platform team would take contributions.
 - **Testing conventions:** every app ships the same four test classes — permissions (role matrix), transitions (state table incl. invalid), idempotency (replay returns recorded outcome), audit (every outcome recorded). Platform fixtures make each a few lines.
 
 ## UI approach
 
-No custom UI kit. shadcn/ui + Tailwind, wrapped once in `frontend/src/platform/components/` as a handful of opinionated composites (QueuePage, DetailPage, ActionBar, StatusBadge, AuditTrail, RoleSwitcher). Apps compose these; the theme lives in one place. Visual consistency across tools is a Skill-enforced property, which is exactly what the POC is demonstrating.
+No custom UI kit. shadcn/ui + Tailwind, wrapped once in `platform/frontend/components/` as a handful of opinionated composites (QueuePage, DetailPage, ActionBar, StatusBadge, AuditTrail, RoleSwitcher). Apps compose these; the theme lives in one place. Visual consistency across tools is a Skill-enforced property, which is exactly what the POC is demonstrating.
 
 ## Reference app: KYC review queue
 
