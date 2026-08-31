@@ -34,8 +34,13 @@ Once the spec PR is approved and merged, a reviewer comments on the PR:
 
 > @devin build this tool from the spec in docs/&lt;tool-id&gt;-spec.md
 
-Devin starts a fresh session with the PR as context, picks up the
-`create-internal-tool` Skill from `.agents/skills/`, and builds the tool.
+Devin starts a fresh session with the PR as context. Repository Skills in
+`.agents/skills/` are discovered automatically at session start, and the
+`create-internal-tool` Skill's description ("build a new internal tool from a
+one-page tool specification") matches this request, so Devin applies it
+without being told. Naming the Skill explicitly in the comment
+(`@devin use the create-internal-tool skill to build ...`) also works and
+makes the match unambiguous.
 
 ## 3. Implementation PR
 
