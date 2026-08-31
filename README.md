@@ -34,11 +34,17 @@ Python venv, npm install, and build; the only shared pieces are the two
 
 ## Run the KYC reference app
 
-With [`just`](https://github.com/casey/just) installed, two commands (in
-separate terminals) handle all dependency setup and start the app:
+With [`just`](https://github.com/casey/just) installed, one command handles
+all dependency setup and starts the app (Ctrl+C stops both processes):
 
 ```bash
 cd apps/kyc
+just app        # backend on :8000 + frontend on :5173, cleaned up on exit
+```
+
+Or run the halves in separate terminals:
+
+```bash
 just backend    # creates the venv, installs deps, serves the API on :8000
 just frontend   # npm install + Vite dev server on :5173 (proxies /api to :8000)
 ```

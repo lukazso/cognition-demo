@@ -5,6 +5,20 @@
 default:
     @just --list
 
+# Start backend + frontend together; Ctrl+C stops and cleans up both
+app:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    pgids=()
+    cleanup() {
+        trap - EXIT INT TERM
+        for pgid in "${pgids[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null || true; done
+    }
+    trap cleanup EXIT INT TERM
+    setsid just backend & pgids+=($!)
+    setsid just frontend & pgids+=($!)
+    wait
+
 # Start the backend API on :8000 (creates the venv and installs deps if needed)
 backend:
     cd backend && [ -d .venv ] || python3 -m venv .venv
