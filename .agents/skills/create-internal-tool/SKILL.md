@@ -10,11 +10,12 @@ The platform owns identity, authorization, governed execution, idempotency,
 audit, connectors, HTTP plumbing, and a shared UI kit. A tool provides its
 domain: entities, policies, connectors, commands, and views.
 
-`apps/kyc/` is a **worked example**, not a structure that must be copied
-exactly. It happens to be a single-entity queue tool with a lifecycle; your
-tool may have multiple related entities, commands that are not state
-transitions, and views that are not queues. Follow its style and its use of
-platform capabilities, not its exact shape.
+The existing tools under `apps/` are **worked examples**, not structures that
+must be copied exactly. Inspect them for established patterns, style, and how
+they use platform capabilities — but do not treat any of them as prescriptive.
+For instance, `apps/kyc/` happens to be a single-entity queue tool with a
+lifecycle; your tool may have multiple related entities, commands that are not
+state transitions, and views that are not queues.
 
 ## Mandatory boundaries (never relax these)
 
@@ -38,11 +39,11 @@ platform capabilities, not its exact shape.
 - **Multiple related entities are allowed.** Give each entity a connector
   resource type, or model child data as fields of the parent — whichever the
   domain calls for.
-- **App-specific pages and components are allowed.** Reuse the platform's
-  queue, detail, form, and status components where they fit — they keep tools
-  in the same visual family — but when a spec needs a view the kit doesn't
-  cover, build it inside `apps/<tool_id>/frontend/` using the platform's UI
-  primitives, theme tokens, and API client rather than blocking the tool.
+- **App-specific pages and components are allowed.** Use platform components
+  where they fit — they keep tools in the same visual family — but when a
+  spec needs a view the kit doesn't cover, build it inside
+  `apps/<tool_id>/frontend/` using the platform's UI primitives, theme
+  tokens, and API client rather than blocking the tool.
 
 ## When to stop and escalate vs. build in-app
 
