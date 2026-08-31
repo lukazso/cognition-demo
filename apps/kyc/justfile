@@ -6,7 +6,7 @@ default:
     @just --list
 
 # Start backend + frontend together; Ctrl+C stops and cleans up both
-app:
+dev:
     #!/usr/bin/env bash
     set -euo pipefail
     pgids=()

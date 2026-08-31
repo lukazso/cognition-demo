@@ -39,7 +39,7 @@ all dependency setup and starts the app (Ctrl+C stops both processes):
 
 ```bash
 cd apps/kyc
-just app        # backend on :8000 + frontend on :5173, cleaned up on exit
+just dev        # backend on :8000 + frontend on :5173, cleaned up on exit
 ```
 
 Or run the halves in separate terminals:
