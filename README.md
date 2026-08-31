@@ -51,7 +51,9 @@ npm run build                # typecheck + build
 
 ## Adding a tool
 
-Write a one-page spec from `docs/tool-spec.template.md`, then ask Devin to
-build it — the `create-internal-tool` Skill does the rest. App PRs must not
+Write a one-page spec from `docs/tool-spec.template.md`, open a spec PR for
+review, then comment `@devin build this tool from the spec` — the
+`create-internal-tool` Skill does the rest. See `docs/dev-workflow.md` for
+the full spec → review → Devin → implementation-PR flow. App PRs must not
 touch `platform/`; missing platform capabilities are escalated as separate
 platform PRs.
