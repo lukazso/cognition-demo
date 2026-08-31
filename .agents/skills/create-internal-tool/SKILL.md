@@ -90,7 +90,11 @@ Vite build. Start by copying the manifests and configs from an existing app
      `input_schema`.
    - `connector.py`: a `FakeConnector` subclass per resource type with seed
      data from the spec and `apply_command` implementing each command's
-     effect.
+     effect. A command that creates a resource is an `Action` with
+     `creates_resource=True` (no `valid_from_states`), invoked at
+     `POST /api/<tool_id>/resources/actions/<command>`, and the connector
+     implements `build_record` — assigning the id and rejecting duplicates
+     with `Err` — instead of `apply_command`.
    - `config.py`: a `make_tool()` factory returning a fresh `ToolConfig`,
      and `TOOL = make_tool()`.
 2. **Set up the venv**:
