@@ -26,6 +26,60 @@ def _get(client, flag_id: str, role: Role = Role.VIEWER):
     return client.get(f"/api/flags/resources/{flag_id}", headers=as_role(role)).json()
 
 
+def _create(client, role: Role, input_data: dict, key: str | None = None):
+    return client.post(
+        "/api/flags/resources/actions/create",
+        json={"idempotency_key": key or str(uuid.uuid4()), "input": input_data},
+        headers=as_role(role),
+    )
+
+
+NEW_FLAG = {"key": "search.semantic-ranking", "description": "Semantic ranking", "owner_team": "search"}
+
+
+class TestCreate:
+    def test_operator_creates_a_draft_flag(self, client):
+        response = _create(client, Role.OPERATOR, NEW_FLAG)
+        assert response.status_code == 200
+        flag = response.json()["resource"]
+        assert (flag["state"], flag["staging_enabled"], flag["prod_enabled"],
+                flag["prod_rollout_pct"]) == ("draft", False, False, 0)
+        assert_audited("feature_flag", response.json()["resource_id"], action="flags.create",
+                       outcome="success", actor_role=Role.OPERATOR)
+
+    def test_viewer_cannot_create(self, client):
+        assert _create(client, Role.VIEWER, NEW_FLAG).status_code == 403
+        assert client.get("/api/flags/resources", headers=as_role(Role.VIEWER)).json()["total"] == 12
+
+    def test_duplicate_key_rejected(self, client):
+        response = _create(client, Role.OPERATOR,
+                           {**NEW_FLAG, "key": "checkout.new-payment-flow"})
+        assert response.status_code == 502
+        assert client.get("/api/flags/resources", headers=as_role(Role.VIEWER)).json()["total"] == 12
+
+    def test_missing_fields_rejected(self, client):
+        assert _create(client, Role.OPERATOR, {"key": "a.b"}).status_code == 422
+
+    def test_replay_creates_one_flag(self, client):
+        key = str(uuid.uuid4())
+        first = _create(client, Role.OPERATOR, NEW_FLAG, key=key)
+        replay = _create(client, Role.OPERATOR, NEW_FLAG, key=key)
+        assert replay.json()["replayed"] is True
+        assert replay.json()["resource_id"] == first.json()["resource_id"]
+        assert client.get("/api/flags/resources", headers=as_role(Role.VIEWER)).json()["total"] == 13
+
+    def test_create_is_advertised_by_role_only(self, client):
+        listing = client.get("/api/flags/resources", headers=as_role(Role.OPERATOR)).json()
+        assert listing["available_create_actions"] == ["flags.create"]
+        assert client.get("/api/flags/resources", headers=as_role(Role.VIEWER)).json()[
+            "available_create_actions"
+        ] == []
+
+    def test_new_flag_can_be_activated(self, client):
+        flag_id = _create(client, Role.OPERATOR, NEW_FLAG).json()["resource_id"]
+        assert _invoke(client, flag_id, "activate", Role.OPERATOR).json()["new_state"] == "active"
+
+
 class TestPermissions:
     def test_role_matrix(self, client):
         matrix = [

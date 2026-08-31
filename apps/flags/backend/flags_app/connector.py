@@ -1,5 +1,7 @@
 """Connector to the feature flag configuration store (fake implementation for the POC)."""
 
+from datetime import datetime, timezone
+
 from platform_core.connectors import Command, Err, ErrKind, FakeConnector
 
 from flags_app.models import FeatureFlag, FlagState
@@ -51,6 +53,25 @@ class FlagConnector(FakeConnector):
                 created_at=created,
             )
             self.records[id_] = flag.model_dump(mode="json")
+
+    def build_record(self, command: Command) -> dict | Err:
+        """Create a draft flag with everything switched off, rejecting a key already in use."""
+        payload = command.payload
+        key = payload["key"]
+        if any(r["key"] == key for r in self.records.values()):
+            return Err(kind=ErrKind.CONFLICT, message=f"Flag key {key} is already in use")
+        next_id = f"flag-{1000 + len(self.records) + 1}"
+        flag = FeatureFlag(
+            id=next_id,
+            key=key,
+            description=payload["description"],
+            owner_team=payload["owner_team"],
+            state=FlagState.DRAFT,
+            created_at=datetime.now(timezone.utc).isoformat(),
+            updated_by=payload.get("actor_id"),
+            change_note="Created",
+        )
+        return flag.model_dump(mode="json")
 
     def apply_command(self, record: dict, command: Command) -> Err | None:
         """Apply a command to the flag, rejecting domain preconditions the state machine

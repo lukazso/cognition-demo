@@ -6,6 +6,7 @@ from platform_core.auth import Role
 from flags_app.models import (
     ActivateInput,
     ArchiveInput,
+    CreateInput,
     SetProductionInput,
     SetRolloutInput,
     SetStagingInput,
@@ -16,6 +17,13 @@ SUPERVISOR_ONLY = frozenset({Role.SUPERVISOR})
 READ_ROLES = ALL_ROLES  # anyone in the team may look up a flag, only operators mutate
 
 ACTIONS: list[Action] = [
+    Action(
+        name="flags.create",
+        command="create",
+        allowed_roles=OPERATORS_AND_UP,
+        creates_resource=True,
+        input_schema=CreateInput,
+    ),
     Action(
         name="flags.activate",
         command="activate",

@@ -25,6 +25,12 @@ class FeatureFlag(BaseModel):
     change_note: str | None = None
 
 
+class CreateInput(BaseModel):
+    key: str = Field(min_length=1)
+    description: str = Field(min_length=1)
+    owner_team: str = Field(min_length=1)
+
+
 class ActivateInput(BaseModel):
     pass
 
