@@ -59,7 +59,7 @@ class Command:
 @dataclass(frozen=True)
 class CommandOutcome:
     resource: dict[str, Any]
-    new_state: str
+    new_state: str | None = None  # None for resources without a lifecycle
 
 
 class Connector(Protocol):
@@ -73,8 +73,9 @@ class Connector(Protocol):
 class FakeConnector:
     """In-memory system of record.
 
-    Subclasses set ``resource_type``, seed ``self.records`` (id -> dict with a ``state``
-    key), and implement ``apply_command`` to mutate a record for a given command.
+    Subclasses set ``resource_type``, seed ``self.records`` (id -> dict; include a
+    ``state`` key only if the resource has a lifecycle), and implement
+    ``apply_command`` to mutate a record for a given command.
     """
 
     resource_type = "resource"
@@ -125,7 +126,7 @@ class FakeConnector:
         result = self.apply_command(record, command)
         if isinstance(result, Err):
             return result
-        outcome = CommandOutcome(resource=dict(record), new_state=record["state"])
+        outcome = CommandOutcome(resource=dict(record), new_state=record.get("state"))
         self._seen_keys[idempotency_key] = outcome
         return Ok(outcome)
 

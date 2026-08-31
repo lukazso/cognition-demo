@@ -57,8 +57,10 @@ class Action:
     name: str  # e.g. "kyc.approve"
     command: str  # command name sent to the connector
     allowed_roles: frozenset[Role]
-    valid_from_states: frozenset[str]
-    to_state: str
+    # Lifecycle constraints are optional: leave both unset for commands that
+    # are not state transitions (e.g. updating a field on the resource).
+    valid_from_states: frozenset[str] | None = None
+    to_state: str | None = None
     input_schema: type[BaseModel] | None = None
     payload_extra: dict[str, Any] = field(default_factory=dict)
 
@@ -66,7 +68,7 @@ class Action:
 @dataclass(frozen=True)
 class ActionResult:
     resource: dict
-    new_state: str
+    new_state: str | None
     replayed: bool = False
 
 
@@ -135,7 +137,7 @@ def run_action(
         audited(UpstreamFailure.outcome, error_kind=current.kind.value)
         raise UpstreamFailure(current.kind, current.message)
     before_state = current.value.get("state")
-    if before_state not in action.valid_from_states:
+    if action.valid_from_states is not None and before_state not in action.valid_from_states:
         audited(InvalidTransition.outcome, before=before_state)
         raise InvalidTransition(
             f"{action.name} not allowed from state {before_state!r}"
@@ -191,7 +193,8 @@ def actions_available(actions: list[Action], actor: User, state: str) -> list[st
     return [
         a.name
         for a in actions
-        if actor.role in a.allowed_roles and state in a.valid_from_states
+        if actor.role in a.allowed_roles
+        and (a.valid_from_states is None or state in a.valid_from_states)
     ]
 
 

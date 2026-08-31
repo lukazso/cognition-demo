@@ -36,7 +36,7 @@ export interface ResourceDetail {
 
 export interface ActionResponse {
   resource: Record<string, unknown>;
-  new_state: string;
+  new_state: string | null;
   replayed: boolean;
 }
 
