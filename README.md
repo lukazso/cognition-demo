@@ -101,9 +101,9 @@ npm run lint && npm run typecheck
 npx eslint . && npm run build
 ```
 
-## Adding a tool
+## Adding a new app
 
-Write a one-page spec from `docs/tool-spec.template.md`, open a spec PR for
+Write a one-page spec from `docs/tool-spec.template.md` (you can do this also with support from Devin), open a spec PR for
 review, then comment `@devin build this tool from the spec` — the
 `create-internal-tool` Skill does the rest. See `docs/dev-workflow.md` for
 the full spec → review → Devin → implementation-PR flow. App PRs must not
