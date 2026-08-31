@@ -39,6 +39,17 @@ npm install
 npm run dev   # http://localhost:5173, proxies /api to :8000
 ```
 
+Then open http://localhost:5173/kyc — the KYC reference app, seeded with 12
+demo cases across all lifecycle states. Use the role switcher in the header
+to act as `viewer` (read-only), `operator` (start review, escalate), or
+`supervisor` (also approve/reject); each case's detail page shows the
+available actions for the current role/state and the audit trail. The API is
+also directly usable, e.g.:
+
+```bash
+curl -H "X-Mock-Role: supervisor" localhost:8000/api/kyc/resources
+```
+
 ## Verify
 
 ```bash
