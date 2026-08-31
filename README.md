@@ -33,6 +33,17 @@ Dependencies and setup are encapsulated per package: each app owns its own
 Python venv, npm install, and build; the only shared pieces are the two
 `platform/` packages an app depends on. There is no repo-root toolchain.
 
+## Adding a new app
+
+Write a one-page spec from `docs/tool-spec.template.md` (you can do this also with support from Devin), open a spec PR for
+review, then comment `@devin build this tool from the spec` — the
+`create-internal-tool` Skill does the rest. See `docs/dev-workflow.md` for
+the full spec → review → Devin → implementation-PR flow. App PRs must not
+touch `platform/`; missing platform capabilities are escalated as separate
+platform PRs.
+
+Look at [#6](https://github.com/lukazso/cognition-demo/pull/6) for a reference PR + implementation workflow.
+
 ## Run the KYC reference app
 
 With [`just`](https://github.com/casey/just) installed, one command handles
@@ -100,14 +111,3 @@ npm run lint && npm run typecheck
 # apps/<tool>/frontend
 npx eslint . && npm run build
 ```
-
-## Adding a new app
-
-Write a one-page spec from `docs/tool-spec.template.md` (you can do this also with support from Devin), open a spec PR for
-review, then comment `@devin build this tool from the spec` — the
-`create-internal-tool` Skill does the rest. See `docs/dev-workflow.md` for
-the full spec → review → Devin → implementation-PR flow. App PRs must not
-touch `platform/`; missing platform capabilities are escalated as separate
-platform PRs.
-
-Look at [#6](https://github.com/lukazso/cognition-demo/pull/6) for a reference PR + implementation workflow.
