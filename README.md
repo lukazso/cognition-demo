@@ -48,10 +48,12 @@ npm install
 npm run dev   # http://localhost:5173, proxies /api to :8000
 ```
 
-Then open http://localhost:5173/kyc — seeded with 12 demo cases across all
-lifecycle states. Use the role switcher in the header to act as `viewer`
-(read-only), `operator` (start review, escalate), or `supervisor` (also
-approve/reject). The API is also directly usable, e.g.:
+Then open http://localhost:5173/kyc — the KYC reference app, seeded with 12
+demo cases across all lifecycle states. Use the role switcher in the header
+to act as `viewer` (read-only), `operator` (start review, escalate), or
+`supervisor` (also approve/reject); each case's detail page shows the
+available actions for the current role/state and the audit trail. The API is
+also directly usable, e.g.:
 
 ```bash
 curl -H "X-Mock-Role: supervisor" localhost:8000/api/kyc/resources
@@ -77,7 +79,9 @@ npx eslint . && npm run build
 
 ## Adding a tool
 
-Write a one-page spec from `docs/tool-spec.template.md`, then ask Devin to
-build it — the `create-internal-tool` Skill does the rest. App PRs must not
+Write a one-page spec from `docs/tool-spec.template.md`, open a spec PR for
+review, then comment `@devin build this tool from the spec` — the
+`create-internal-tool` Skill does the rest. See `docs/dev-workflow.md` for
+the full spec → review → Devin → implementation-PR flow. App PRs must not
 touch `platform/`; missing platform capabilities are escalated as separate
 platform PRs.
