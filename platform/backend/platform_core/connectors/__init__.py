@@ -60,6 +60,7 @@ class Command:
 class CommandOutcome:
     resource: dict[str, Any]
     new_state: str | None = None  # None for resources without a lifecycle
+    resource_id: str | None = None  # id assigned by the system of record on creation
 
 
 class Connector(Protocol):
@@ -68,6 +69,9 @@ class Connector(Protocol):
     def list(self, query: Query) -> ConnectorResult[Page[dict]]: ...
     def get(self, resource_id: str) -> ConnectorResult[dict]: ...
     def execute(self, command: Command, idempotency_key: str) -> ConnectorResult[CommandOutcome]: ...
+    # Creation is separate: there is no resource to fetch yet, and the system of
+    # record assigns the id, returned as ``CommandOutcome.resource_id``.
+    def create(self, command: Command, idempotency_key: str) -> ConnectorResult[CommandOutcome]: ...
 
 
 class FakeConnector:
@@ -75,10 +79,12 @@ class FakeConnector:
 
     Subclasses set ``resource_type``, seed ``self.records`` (id -> dict; include a
     ``state`` key only if the resource has a lifecycle), and implement
-    ``apply_command`` to mutate a record for a given command.
+    ``apply_command`` to mutate a record for a given command. Subclasses that support
+    creation also implement ``build_record``.
     """
 
     resource_type = "resource"
+    id_field = "id"
 
     def __init__(self) -> None:
         self.records: dict[str, dict] = {}
@@ -126,9 +132,34 @@ class FakeConnector:
         result = self.apply_command(record, command)
         if isinstance(result, Err):
             return result
-        outcome = CommandOutcome(resource=dict(record), new_state=record.get("state"))
+        outcome = CommandOutcome(
+            resource=dict(record), new_state=record.get("state"), resource_id=command.resource_id
+        )
+        self._seen_keys[idempotency_key] = outcome
+        return Ok(outcome)
+
+    def create(self, command: Command, idempotency_key: str) -> ConnectorResult[CommandOutcome]:
+        if idempotency_key in self._seen_keys:
+            return Ok(self._seen_keys[idempotency_key])
+        if (err := self._pop_injected_failure()) is not None:
+            return err
+        result = self.build_record(command)
+        if isinstance(result, Err):
+            return result
+        resource_id = str(result[self.id_field])
+        if resource_id in self.records:
+            return Err(kind=ErrKind.CONFLICT, message=f"{self.resource_type} {resource_id} exists")
+        self.records[resource_id] = result
+        outcome = CommandOutcome(
+            resource=dict(result), new_state=result.get("state"), resource_id=resource_id
+        )
         self._seen_keys[idempotency_key] = outcome
         return Ok(outcome)
 
     def apply_command(self, record: dict, command: Command) -> Err | None:
+        raise NotImplementedError
+
+    def build_record(self, command: Command) -> dict | Err:
+        """Build the new record (including its ``id_field``) for a creating command, or
+        return ``Err`` when the system of record rejects it (e.g. a duplicate key)."""
         raise NotImplementedError

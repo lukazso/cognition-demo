@@ -19,6 +19,7 @@ from platform_core.actions import (
     UpstreamFailure,
     actions_available,
     authorize_read,
+    create_actions_available,
     run_action,
 )
 from platform_core.auth import MOCK_USERS, Role, User, get_current_user
@@ -78,7 +79,11 @@ def build_tool_router(config: ToolConfig) -> APIRouter:
         if isinstance(result, Err):
             raise HTTPException(status_code=502, detail={"outcome": "upstream_failure",
                                                          "message": result.message})
-        return {"items": result.value.items, "total": result.value.total}
+        return {
+            "items": result.value.items,
+            "total": result.value.total,
+            "available_create_actions": create_actions_available(config.actions, user),
+        }
 
     @router.get("/resources/{resource_id}")
     def get_resource(resource_id: str, user: User = Depends(get_current_user)):
@@ -101,6 +106,39 @@ def build_tool_router(config: ToolConfig) -> APIRouter:
             ],
         }
 
+    def _resolve(action_name: str, *, creating: bool) -> Action:
+        action = actions_by_name.get(f"{config.tool_id}.{action_name}") or actions_by_name.get(
+            action_name
+        )
+        if action is None or action.creates_resource != creating:
+            raise HTTPException(status_code=404, detail={"outcome": "unknown_action",
+                                                         "message": action_name})
+        return action
+
+    @router.post("/resources/actions/{action_name}")
+    def invoke_create_action(
+        action_name: str,
+        request: ActionRequest,
+        user: User = Depends(get_current_user),
+    ):
+        action = _resolve(action_name, creating=True)
+        try:
+            result = run_action(
+                action=action,
+                actor=user,
+                connector=config.connector,
+                input_data=request.input,
+                idempotency_key=request.idempotency_key,
+            )
+        except ActionError as exc:
+            raise _http_error(exc) from exc
+        return {
+            "resource": result.resource,
+            "resource_id": result.resource_id,
+            "new_state": result.new_state,
+            "replayed": result.replayed,
+        }
+
     @router.post("/resources/{resource_id}/actions/{action_name}")
     def invoke_action(
         resource_id: str,
@@ -108,12 +146,7 @@ def build_tool_router(config: ToolConfig) -> APIRouter:
         request: ActionRequest,
         user: User = Depends(get_current_user),
     ):
-        action = actions_by_name.get(f"{config.tool_id}.{action_name}") or actions_by_name.get(
-            action_name
-        )
-        if action is None:
-            raise HTTPException(status_code=404, detail={"outcome": "unknown_action",
-                                                         "message": action_name})
+        action = _resolve(action_name, creating=False)
         try:
             result = run_action(
                 action=action,
@@ -127,6 +160,7 @@ def build_tool_router(config: ToolConfig) -> APIRouter:
             raise _http_error(exc) from exc
         return {
             "resource": result.resource,
+            "resource_id": result.resource_id,
             "new_state": result.new_state,
             "replayed": result.replayed,
         }

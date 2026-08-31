@@ -10,6 +10,7 @@ export interface User {
 export interface ResourceList {
   items: Record<string, unknown>[];
   total: number;
+  available_create_actions: string[];
 }
 
 export interface AuditRecord {
@@ -36,6 +37,7 @@ export interface ResourceDetail {
 
 export interface ActionResponse {
   resource: Record<string, unknown>;
+  resource_id: string | null;
   new_state: string | null;
   replayed: boolean;
 }
