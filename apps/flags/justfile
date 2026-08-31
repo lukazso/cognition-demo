@@ -1,0 +1,42 @@
+# Feature flag admin panel — `just backend` and `just frontend` are all you need.
+# Each recipe sets up its own dependencies (venv / node_modules) on first run.
+
+# List available recipes
+default:
+    @just --list
+
+# Start backend + frontend together; Ctrl+C stops and cleans up both
+dev:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    pgids=()
+    cleanup() {
+        trap - EXIT INT TERM
+        for pgid in "${pgids[@]}"; do kill -TERM -- "-$pgid" 2>/dev/null || true; done
+    }
+    trap cleanup EXIT INT TERM
+    run_in_group() { exec python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' "$@"; }
+    run_in_group just backend & pgids+=($!)
+    run_in_group just frontend & pgids+=($!)
+    wait
+
+# Start the backend API on :8000 (creates the venv and installs deps if needed)
+backend:
+    cd backend && [ -d .venv ] || python3 -m venv .venv
+    cd backend && .venv/bin/pip install -q -e ../../../platform/backend
+    cd backend && .venv/bin/pip install -q -e ".[dev]"
+    cd backend && .venv/bin/uvicorn server:app --reload --port 8000
+
+# Start the frontend dev server on :5173 (installs npm deps if needed; proxies /api to :8000)
+frontend:
+    cd frontend && npm install --no-audit --no-fund
+    cd frontend && npm run dev
+
+# Run the backend test suite
+test:
+    cd backend && .venv/bin/pytest -q
+
+# Lint + boundary checks for both halves
+lint:
+    cd backend && .venv/bin/ruff check . && .venv/bin/lint-imports
+    cd frontend && npx eslint .

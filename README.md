@@ -16,10 +16,11 @@ platform/
 ├── backend/    # installable package `platform-core`: auth, actions, audit, connectors, db, http, testing
 └── frontend/   # source library: shadcn-style UI kit, API client, QueuePage/DetailPage/ActionBar
 apps/
-└── kyc/        # reference app — fully self-contained:
-    ├── backend/   # own pyproject.toml + venv; `kyc_app` package + server.py entrypoint
-    └── frontend/  # own package.json + Vite build; consumes platform/frontend via @platform alias
-docs/           # architecture, tool spec template, KYC spec, production gaps, evaluation
+├── kyc/        # reference app — fully self-contained:
+│   ├── backend/   # own pyproject.toml + venv; `kyc_app` package + server.py entrypoint
+│   └── frontend/  # own package.json + Vite build; consumes platform/frontend via @platform alias
+└── flags/      # feature flag admin panel, built from docs/flags-spec.md
+docs/           # architecture, tool spec template, tool specs, production gaps, evaluation
 .agents/skills/create-internal-tool/   # the Devin Skill that builds new tools from a spec
 ```
 
@@ -75,6 +76,12 @@ also directly usable, e.g.:
 ```bash
 curl -H "X-Mock-Role: supervisor" localhost:8000/api/kyc/resources
 ```
+
+## Run the feature flag admin panel
+
+Same shape as the KYC app (`cd apps/flags && just dev`), served at
+http://localhost:5173/flags with 12 seeded flags across `draft`, `active`,
+and `archived`.
 
 ## Verify
 
