@@ -18,14 +18,21 @@ dev:
     run_in_group() { exec python3 -c 'import os, sys; os.setsid(); os.execvp(sys.argv[1], sys.argv[1:])' "$@"; }
     run_in_group just backend & pgids+=($!)
     run_in_group just frontend & pgids+=($!)
-    wait
+    # if either half exits (e.g. backend setup fails), tear the other one down too
+    wait -n
 
 # Start the backend API on :8000 (creates the venv and installs deps if needed)
 backend:
-    cd backend && [ -d .venv ] || python3 -m venv .venv
-    cd backend && .venv/bin/pip install -q -e ../../../platform/backend
-    cd backend && .venv/bin/pip install -q -e ".[dev]"
-    cd backend && .venv/bin/uvicorn server:app --reload --port 8000
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd backend
+    [ -d .venv ] || python3 -m venv .venv
+    # editable installs of pyproject-only packages need PEP 660 support (pip >= 21.3)
+    .venv/bin/python -c 'import sys, pip; sys.exit(0 if tuple(map(int, pip.__version__.split(".")[:2])) >= (21, 3) else 1)' \
+        || .venv/bin/pip install -q --upgrade pip
+    .venv/bin/pip install -q -e ../../../platform/backend
+    .venv/bin/pip install -q -e ".[dev]"
+    .venv/bin/uvicorn server:app --reload --port 8000
 
 # Start the frontend dev server on :5173 (installs npm deps if needed; proxies /api to :8000)
 frontend:
