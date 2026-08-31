@@ -62,6 +62,8 @@ Every mutation in every app is a **governed action** executed through a single c
 
 ```
 run_action(action, actor, resource_id, input, idempotency_key)
+  # resource_id is omitted for a creating action (action.creates_resource):
+  # step 3's state validation is skipped and the connector assigns the new id
   1. authenticate  → actor comes from the identity provider (mocked)
   2. authorize     → actor.role ∈ action.allowed_roles           else PermissionDenied
   3. validate      → resource.state ∈ action.valid_from_states   else InvalidTransition
@@ -98,6 +100,7 @@ class Connector(Protocol[TResource]):
     def list(self, query: Query) -> ConnectorResult[Page[TResource]]: ...
     def get(self, resource_id: str) -> ConnectorResult[TResource]: ...
     def execute(self, command: Command, idempotency_key: str) -> ConnectorResult[CommandOutcome]: ...
+    def create(self, command: Command, idempotency_key: str) -> ConnectorResult[CommandOutcome]: ...
 
 ConnectorResult = Ok[T] | Err            # Err.kind ∈ {timeout, not_found, conflict,
                                           #   upstream_error, invalid_request}
@@ -105,6 +108,7 @@ ConnectorResult = Ok[T] | Err            # Err.kind ∈ {timeout, not_found, con
 
 - Consistent timeout and failure representation: every connector call returns `Ok | Err` with one of the fixed error kinds; no connector-specific exceptions leak upward.
 - Commands carry idempotency keys end to end (action pipeline generates/records them).
+- Creation goes through `create`, not `execute`: the system of record builds the record and assigns the id (`CommandOutcome.resource_id`), so no app ever inserts a resource outside the governed pipeline.
 - `platform/connectors` ships a `FakeConnector` base with scriptable data and failure injection (`fail_next(kind="timeout")`) — this is what tests and the POC runtime use.
 - **Boundary rule:** `apps/**` may import `platform/*` and their own modules only; nothing in `apps/**` or `frontend/**` opens a DB connection or HTTP client directly. Enforced with import-linter (backend) and an ESLint boundary rule (frontend), wired into CI — so the constraint holds against an AI builder, not just a code reviewer.
 

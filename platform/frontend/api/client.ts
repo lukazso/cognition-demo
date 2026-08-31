@@ -29,6 +29,19 @@ export function getResource(toolId: string, resourceId: string, role: Role): Pro
   return request(`/api/${toolId}/resources/${resourceId}`, role);
 }
 
+/** Invoke a creating action: there is no resource yet, the server assigns the id. */
+export function invokeCreateAction(
+  toolId: string,
+  actionName: string,
+  role: Role,
+  input: Record<string, unknown>,
+): Promise<ActionResponse> {
+  return request(`/api/${toolId}/resources/actions/${actionName}`, role, {
+    method: "POST",
+    body: JSON.stringify({ input, idempotency_key: crypto.randomUUID() }),
+  });
+}
+
 export function invokeAction(
   toolId: string,
   resourceId: string,

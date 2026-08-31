@@ -21,6 +21,8 @@ jobs:
         run: ruff check .
       - name: Import boundaries
         run: lint-imports
+      - name: Tests
+        run: pytest -q
 
   platform-frontend:
     runs-on: ubuntu-latest
