@@ -5,6 +5,7 @@
 
 import pytest
 from fastapi.testclient import TestClient
+
 from platform_core import audit
 from platform_core.auth import MOCK_USERS, Role
 from platform_core.db import use_file_db, use_memory_db

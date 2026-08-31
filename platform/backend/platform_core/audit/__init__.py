@@ -4,8 +4,9 @@ validation failures — is recorded here."""
 import json
 from datetime import datetime, timezone
 
-from platform_core.db import get_connection
 from pydantic import BaseModel
+
+from platform_core.db import get_connection
 
 
 class AuditRecord(BaseModel):

@@ -11,11 +11,12 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
 
+from pydantic import BaseModel, ValidationError
+
 from platform_core import audit
 from platform_core.auth import Role, User
 from platform_core.connectors import Command, CommandOutcome, Connector, Err, ErrKind
 from platform_core.db import get_connection
-from pydantic import BaseModel, ValidationError
 
 
 class ActionError(Exception):

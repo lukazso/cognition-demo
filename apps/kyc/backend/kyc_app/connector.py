@@ -2,7 +2,7 @@
 
 from platform_core.connectors import Command, Err, ErrKind, FakeConnector
 
-from apps.kyc.backend.models import KycCase, KycState
+from kyc_app.models import KycCase, KycState
 
 _SEED = [
     ("kyc-1001", "Amara Okafor", "amara.okafor@example.com", "NG", 22, "pending", "2026-08-24T09:15:00Z"),

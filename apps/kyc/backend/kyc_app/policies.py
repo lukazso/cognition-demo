@@ -3,7 +3,7 @@
 from platform_core.actions import ALL_ROLES, Action
 from platform_core.auth import Role
 
-from apps.kyc.backend.models import ApproveInput, EscalateInput, RejectInput, StartReviewInput
+from kyc_app.models import ApproveInput, EscalateInput, RejectInput, StartReviewInput
 
 OPERATORS_AND_UP = frozenset({Role.OPERATOR, Role.SUPERVISOR})
 SUPERVISOR_ONLY = frozenset({Role.SUPERVISOR})

@@ -14,12 +14,8 @@
     "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "baseUrl": ".",
-    "paths": {
-      "@platform/*": ["platform/frontend/*"],
-      "@apps/*": ["apps/*"]
-    }
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src", "platform/frontend", "apps/*/frontend", "apps/registry.ts"]
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }

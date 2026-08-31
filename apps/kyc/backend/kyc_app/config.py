@@ -2,8 +2,8 @@
 
 from platform_core.http import ToolConfig
 
-from apps.kyc.backend.connector import KycConnector
-from apps.kyc.backend.policies import ACTIONS, READ_ROLES
+from kyc_app.connector import KycConnector
+from kyc_app.policies import ACTIONS, READ_ROLES
 
 
 def make_tool() -> ToolConfig:
