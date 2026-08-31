@@ -3,9 +3,7 @@ export default {
   content: [
     "./index.html",
     "./src/**/*.{ts,tsx}",
-    "./platform/frontend/**/*.{ts,tsx}",
-    "./apps/**/frontend/**/*.{ts,tsx}",
-    "./apps/registry.ts",
+    "../../../platform/frontend/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {

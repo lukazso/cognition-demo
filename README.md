@@ -13,10 +13,12 @@ tool with limited human intervention.
 
 ```text
 platform/
-├── backend/    # auth, actions, audit, connectors, db, http, testing (import name: platform_core)
-└── frontend/   # shadcn-style UI kit, API client, QueuePage/DetailPage/ActionBar
+├── backend/    # installable package `platform-core`: auth, actions, audit, connectors, db, http, testing
+└── frontend/   # source library: shadcn-style UI kit, API client, QueuePage/DetailPage/ActionBar
 apps/
-└── kyc/        # reference app: backend (models/policies/connector/tests) + frontend config
+└── kyc/        # reference app — fully self-contained:
+    ├── backend/   # own pyproject.toml + venv; `kyc_app` package + server.py entrypoint
+    └── frontend/  # own package.json + Vite build; consumes platform/frontend via @platform alias
 docs/           # architecture, tool spec template, KYC spec, production gaps, evaluation
 .agents/skills/create-internal-tool/   # the Devin Skill that builds new tools from a spec
 ```
@@ -26,15 +28,39 @@ authenticate → authorize → idempotency → validate state → validate input
 execute via connector → audit. Identity is mocked (`X-Mock-Role` header:
 `viewer` / `operator` / `supervisor`); no real SSO in this POC.
 
-## Run it
+Dependencies and setup are encapsulated per package: each app owns its own
+Python venv, npm install, and build; the only shared pieces are the two
+`platform/` packages an app depends on. There is no repo-root toolchain.
+
+## Run the KYC reference app
+
+With [`just`](https://github.com/casey/just) installed, one command handles
+all dependency setup and starts the app (Ctrl+C stops both processes):
 
 ```bash
-# backend (Python 3.10+)
+cd apps/kyc
+just dev        # backend on :8000 + frontend on :5173, cleaned up on exit
+```
+
+Or run the halves in separate terminals:
+
+```bash
+just backend    # creates the venv, installs deps, serves the API on :8000
+just frontend   # npm install + Vite dev server on :5173 (proxies /api to :8000)
+```
+
+Or manually:
+
+```bash
+# backend (Python 3.10+), from apps/kyc/backend/
+cd apps/kyc/backend
 python3 -m venv .venv
+.venv/bin/pip install -e ../../../platform/backend
 .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn server:app --reload --port 8000
 
-# frontend
+# frontend, from apps/kyc/frontend/
+cd apps/kyc/frontend
 npm install
 npm run dev   # http://localhost:5173, proxies /api to :8000
 ```
@@ -52,12 +78,20 @@ curl -H "X-Mock-Role: supervisor" localhost:8000/api/kyc/resources
 
 ## Verify
 
+Each package verifies independently (CI runs one job per package):
+
 ```bash
-.venv/bin/pytest -q          # backend tests
-.venv/bin/ruff check .       # backend lint
-.venv/bin/lint-imports       # backend import boundaries
-npx eslint .                 # frontend lint + boundary rules
-npm run build                # typecheck + build
+# platform/backend
+.venv/bin/ruff check . && .venv/bin/lint-imports
+
+# platform/frontend
+npm run lint && npm run typecheck
+
+# apps/<tool>/backend
+.venv/bin/ruff check . && .venv/bin/lint-imports && .venv/bin/pytest -q
+
+# apps/<tool>/frontend
+npx eslint . && npm run build
 ```
 
 ## Adding a tool

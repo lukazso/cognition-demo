@@ -18,9 +18,6 @@ This is a proof of concept: clear boundaries and working behavior are prioritize
 
 ```
 README.md
-pyproject.toml                 # single Python toolchain; packages: platform/backend, apps/*/backend
-package.json                   # single JS toolchain; Vite + Tailwind + shadcn/ui, aliases into
-vite.config.ts                 #   platform/frontend and apps/*/frontend
 docs/
 ├── architecture.md            # this document
 ├── tool-spec.template.md      # one-page spec an engineer fills in per tool
@@ -32,32 +29,32 @@ docs/
     └── create-internal-tool/
         └── SKILL.md           # Devin Skill: spec → working tool
 platform/
-├── backend/
+├── backend/                   # installable package: pyproject.toml + platform_core/
 │   ├── auth/                  # identity provider interface + mocked provider, roles
 │   ├── actions/               # governed action pipeline
 │   ├── audit/                 # append-only audit log (table + query API)
 │   ├── connectors/            # typed connector contract + fake connector base
 │   ├── db/                    # SQLite engine, session, migration helper
 │   └── testing/               # pytest fixtures: users-by-role, fake connectors, audit assertions
-└── frontend/
+└── frontend/                  # source library: package.json (lint/typecheck only), consumed
+    │                          #   by app frontends via the @platform alias
     ├── components/            # shadcn-based kit: QueuePage, DetailPage, ActionBar,
     │                          #   StatusBadge, AuditTrail, RoleSwitcher
     ├── api/                   # typed client: fetch wrapper, action invocation, error shape
     └── theme/                 # tokens; single source of visual identity
 apps/
 └── kyc/
-    ├── backend/
-    │   ├── models.py          # domain model + states
-    │   ├── policies.py        # role → action permissions, state-transition table
-    │   ├── connector.py       # KYC system-of-record connector (fake impl for POC)
-    │   ├── actions.py         # governed actions (approve, reject, escalate, ...)
-    │   ├── router.py          # FastAPI router: thin HTTP layer over actions/queries
-    │   └── tests/
-    └── frontend/
-        └── pages/             # composes platform components only
+    ├── backend/               # own pyproject.toml + venv + server.py entrypoint
+    │   └── kyc_app/
+    │       ├── models.py      # domain model + states
+    │       ├── policies.py    # role → action permissions, state-transition table
+    │       ├── connector.py   # KYC system-of-record connector (fake impl for POC)
+    │       ├── config.py      # ToolConfig wiring the tool into the platform
+    │       └── tests/
+    └── frontend/              # own package.json + Vite build; composes platform components
 ```
 
-Domain-first layout: `platform/` and each `apps/<tool>/` contain their own `backend/` + `frontend/`, so a new tool is exactly one new folder (which is what the Skill scaffolds). The tradeoff is that toolchain configs live once at the repo root (one `pyproject.toml`, one Vite app) and reach into these folders via package/alias configuration. `db/` is part of the platform because persistence and migrations are where apps otherwise quietly diverge.
+Domain-first layout: `platform/` and each `apps/<tool>/` contain their own `backend/` + `frontend/`, so a new tool is exactly one new folder (which is what the Skill scaffolds). Dependencies and setup are encapsulated per package: `platform/backend` is an installable Python package (`platform-core`), each app backend has its own `pyproject.toml`/venv depending on it, and each app frontend has its own `package.json`/Vite build consuming `platform/frontend` as source via the `@platform` alias. There is no repo-root toolchain. `db/` is part of the platform because persistence and migrations are where apps otherwise quietly diverge.
 
 ## Capability 1 — Governed access and actions
 

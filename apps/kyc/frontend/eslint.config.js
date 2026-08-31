@@ -24,7 +24,7 @@ export default tseslint.config(
   {
     // Boundary: app frontends must go through the platform kit — no raw
     // network calls, no reaching into another app.
-    files: ["apps/**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-globals": [
         "error",
@@ -36,7 +36,7 @@ export default tseslint.config(
         {
           patterns: [
             { group: ["axios", "ky", "superagent"], message: "Apps must use the platform API client." },
-            { group: ["../../*/frontend/*", "@apps/*"], message: "Apps must not import from other apps." },
+            { group: ["../../../apps/*"], message: "Apps must not import from other apps." },
           ],
         },
       ],

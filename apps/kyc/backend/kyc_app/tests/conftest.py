@@ -5,7 +5,7 @@ from platform_core.testing import *  # noqa: F401,F403
 @pytest.fixture
 def tool():
     """Fresh KYC ToolConfig (and fake system of record) per test."""
-    from apps.kyc.backend.config import make_tool
+    from kyc_app.config import make_tool
 
     return make_tool()
 

@@ -5,6 +5,8 @@ from dataclasses import dataclass, field
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+
 from platform_core import audit
 from platform_core.actions import (
     ALL_ROLES,
@@ -21,7 +23,6 @@ from platform_core.actions import (
 )
 from platform_core.auth import MOCK_USERS, Role, User, get_current_user
 from platform_core.connectors import Connector, Err, ErrKind, Query
-from pydantic import BaseModel
 
 _STATUS = {
     PermissionDenied: 403,
