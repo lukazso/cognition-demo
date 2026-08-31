@@ -1,0 +1,17 @@
+import pytest
+from platform_core.testing import *  # noqa: F401,F403
+
+
+@pytest.fixture
+def tool():
+    """Fresh flags ToolConfig (and fake flag store) per test."""
+    from flags_app.config import make_tool
+
+    return make_tool()
+
+
+@pytest.fixture
+def client(tool):
+    from platform_core.testing import make_client
+
+    return make_client(tool)

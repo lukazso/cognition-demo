@@ -1,4 +1,4 @@
-# KYC reference app — `just backend` and `just frontend` are all you need.
+# Feature flag admin panel — `just backend` and `just frontend` are all you need.
 # Each recipe sets up its own dependencies (venv / node_modules) on first run.
 
 # List available recipes
