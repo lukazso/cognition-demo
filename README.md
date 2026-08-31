@@ -109,3 +109,5 @@ review, then comment `@devin build this tool from the spec` — the
 the full spec → review → Devin → implementation-PR flow. App PRs must not
 touch `platform/`; missing platform capabilities are escalated as separate
 platform PRs.
+
+Look at [#6](https://github.com/lukazso/cognition-demo/pull/6) for a reference PR + implementation workflow.
