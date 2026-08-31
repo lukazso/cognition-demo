@@ -19,14 +19,30 @@ dev:
     run_in_group just backend & pgids+=($!)
     run_in_group just frontend & pgids+=($!)
     # if either half exits (e.g. backend setup fails), tear the other one down too
-    wait -n
+    # (polled rather than `wait -n`, which needs bash 4; macOS ships bash 3.2)
+    while [ "$(jobs -r | wc -l)" -ge 2 ]; do sleep 1; done
 
 # Start the backend API on :8000 (creates the venv and installs deps if needed)
 backend:
     #!/usr/bin/env bash
     set -euo pipefail
     cd backend
-    [ -d .venv ] || python3 -m venv .venv
+    # platform-core needs Python >= 3.10; macOS still ships 3.9 as `python3`
+    py=""
+    for c in python3.13 python3.12 python3.11 python3.10 python3; do
+        if command -v "$c" >/dev/null 2>&1 && "$c" -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
+            py="$c"; break
+        fi
+    done
+    if [ -z "$py" ]; then
+        echo "error: need Python >= 3.10 on PATH (found $(python3 -V 2>&1)); e.g. brew install python@3.12" >&2
+        exit 1
+    fi
+    if [ -d .venv ] && ! .venv/bin/python -c 'import sys; sys.exit(sys.version_info < (3, 10))'; then
+        echo "recreating backend/.venv: it was built with $(.venv/bin/python -V 2>&1)"
+        rm -rf .venv
+    fi
+    [ -d .venv ] || "$py" -m venv .venv
     # editable installs of pyproject-only packages need PEP 660 support (pip >= 21.3)
     .venv/bin/python -c 'import sys, pip; sys.exit(0 if tuple(map(int, pip.__version__.split(".")[:2])) >= (21, 3) else 1)' \
         || .venv/bin/pip install -q --upgrade pip
